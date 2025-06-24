@@ -1,20 +1,63 @@
-// #include <avr/io.h>
-// #include <avr/interrupt.h>
+#include <avr/io.h>
+#include <avr/interrupt.h>
 // #include <avr/sleep.h>
-
 #include <stdint.h>
 
+// Calculate the prescaler value for 0.5 second interrupt
+#define PRESCALER 256
+#define INTERRUPT_PERIOD_MS 500
+#define INTERRUPT_PERIOD_US (INTERRUPT_PERIOD_MS * 1000)
+#define TIMER0_OCR0A_COUNT 125
+#define MAX_TIMER_COUNT = F_CPU / PRESCALER * (INTERRUPT_PERIOD_US / 1000000UL) / TIMER0_OVF_COUNT
+
+volatile uint8_t toggle_flag = 0;
+volatile uint16_t timer_count = 0;
+
+// Timer0 comp A interrupt service routine
+ISR(TIMER0_COMPA_vect) {
+    if (++timer_count == MAX_TIMER_COUNT) {
+        timer_count = 0;
+        toggle_flag = 1 ^ !toggle_flag;
+        
+        PORTB |= (toggle_flag << PB5); // Set PB5 high
+    }
+}
+
+void initialize_gpio() {
+    // Configure PB5 as output
+    DDRB |= (1 << DDB5);
+    
+    // Initialize PB5 to low
+    PORTB &= ~(1 << PB5);
+}
+
+void initialize_timer0() {
+    // Timer0 setup for overflow interrupt
+    TCCR0A = (1 << WGM01); // CTC mode
+    TCCR0B = (1 << CS02); // Set prescaler to 256
+    TIMSK0 = (1 << OCIE0A); // Enable Timer0 overflow interrupt
+    OCR0A = TIMER0_OCR0A_COUNT;
+}
+
+void setup () {
+    initialize_gpio();
+    initialize_timer0();
+
+    // Enable global interrupts
+    sei();
+}
+
+void routine() {
+    // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    // sleep_mode();
+}
+
 int main() {
-    
     // Setup
-    
-    // sei();
+    setup();
 
     while (1) {
-        // Loop
-
-        // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-        // sleep_mode();
+       routine();
     }
 
     return 0;
