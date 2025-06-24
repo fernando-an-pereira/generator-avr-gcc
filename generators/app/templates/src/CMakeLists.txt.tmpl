@@ -1,5 +1,7 @@
 # Specify the minimum version of CMake required
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 4.0)
+
+set(CMAKE_SYSTEM_NAME Generic)
 
 # Set the name of the project and the programming language
 project(<%= projectName %> C ASM)
@@ -36,4 +38,17 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD COMMAND avr-objcopy -O 
 add_custom_target(upload
   COMMAND avrdude -p ${MCU} -c <%= programmerType %> -P ${PORT} -U flash:w:${PROJECT_NAME}.hex
   DEPENDS ${PROJECT_NAME}.bin
+)
+
+# Define a custom target show the size of the ELF file after building
+add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
+  COMMAND avr-size ${PROJECT_NAME}.elf
+  COMMENT "Displaying ELF file size"
+)
+
+# Define a custom target show the size of the ELF file on demand
+add_custom_target(size
+  COMMAND avr-size ${PROJECT_NAME}.elf
+  DEPENDS ${PROJECT_NAME}.elf
+  COMMENT "Displaying ELF file size"
 )
